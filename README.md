@@ -9,7 +9,8 @@ Current status: v1 interactive explainer implemented with Vite, React, TypeScrip
 ## Files
 
 - `DESIGN.md`: animation concept, story structure, interaction design, data plan, and implementation constraints.
-- `src/`: interactive explainer source.
+- `app/src/`: interactive explainer source.
+- `app/index.html`: Vite development/build entry.
 - `public/assets/`: selected lightweight paper figures used by the qualitative evidence section.
 
 ## Local Development
@@ -29,7 +30,7 @@ The app uses `base: "./"` in `vite.config.ts`, so the generated `dist/` is suita
 
 ## GitHub Pages
 
-The workflow in `.github/workflows/deploy.yml` builds the app and deploys `dist/` to GitHub Pages when changes are pushed to `main`.
+GitHub Pages should use **GitHub Actions** as its source. The workflow in `.github/workflows/deploy.yml` builds the app and deploys `dist/` when changes are pushed to `main`.
 
 ## Remote
 
