@@ -231,6 +231,28 @@ input[type="range"] {
   font-size: 12px;
 }
 
+.scene-copy {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 46px;
+  margin: -2px 0 14px;
+  padding: 11px 14px;
+  border: 1px solid #c9d8f2;
+  border-radius: 8px;
+  background: #f8fbff;
+  color: var(--muted);
+}
+
+.scene-copy strong {
+  flex: 0 0 auto;
+  color: var(--blue);
+}
+
+.scene-copy span {
+  min-width: 0;
+}
+
 .explainer-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.05fr) minmax(0, 1.15fr) 300px;
@@ -245,6 +267,32 @@ input[type="range"] {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--panel);
+}
+
+.stage-panel {
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.explainer-grid.focus-0 .context-panel,
+.explainer-grid.focus-1 .controller-panel,
+.explainer-grid.focus-2 .pruning-panel,
+.explainer-grid.focus-3 .metric-panel {
+  border-color: #99b9ef;
+  box-shadow: 0 12px 34px rgba(39, 102, 216, 0.13);
+  transform: translateY(-2px);
+}
+
+.explainer-grid.focus-0 .controller-panel,
+.explainer-grid.focus-0 .pruning-panel,
+.explainer-grid.focus-1 .context-panel,
+.explainer-grid.focus-1 .pruning-panel,
+.explainer-grid.focus-2 .context-panel,
+.explainer-grid.focus-2 .controller-panel {
+  opacity: 0.72;
 }
 
 .stage-panel,
@@ -644,6 +692,13 @@ input[type="range"] {
   text-align: left;
 }
 
+.platform-card:hover,
+.platform-card:focus-visible {
+  border-color: #99b9ef;
+  transform: translateY(-2px);
+  outline: none;
+}
+
 .platform-card span,
 .platform-card strong,
 .platform-card small {
@@ -661,6 +716,13 @@ input[type="range"] {
 }
 
 .platform-card small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.data-note {
+  grid-column: 2;
+  margin: -4px 0 0;
   color: var(--muted);
   font-size: 12px;
 }
@@ -750,6 +812,16 @@ figcaption {
   .platform-cards,
   .rollout-pair {
     grid-template-columns: 1fr;
+  }
+
+  .scene-copy {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .data-note {
+    grid-column: 1;
   }
 
   .stage-panel,

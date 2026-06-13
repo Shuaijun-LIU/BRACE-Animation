@@ -13,6 +13,13 @@ const modeCopy: Record<Mode, string> = {
   braceErecap: "BRACE admits the call, then E-RECAP prunes the context before planning.",
 };
 
+const sceneCopy = [
+  "Context grows as observations, failures, and multi-agent messages accumulate. This is where replanning cost starts.",
+  "BRACE converts raw triggers into controller decisions, using cooldown, commit windows, and failure-aware overrides.",
+  "E-RECAP progressively prunes the replanning prompt while preserving task head tokens, recent tail tokens, and high-utility middle tokens.",
+  "The evidence view connects the mechanism to paper metrics: tokens, P95 latency, SLO deadline, and violation rate.",
+];
+
 function formatNumber(value: number) {
   return new Intl.NumberFormat("en-US", { maximumFractionDigits: 1 }).format(value);
 }
@@ -26,7 +33,6 @@ function App() {
   const [sloScale, setSloScale] = useState(1);
 
   const platform = platforms.find((item) => item.id === platformId) ?? platforms[0];
-  const activeMetric = mode === "baseline" ? platform.baseline : mode === "brace" ? platform.baseline : platform.braceErecap;
   const budgetTokens =
     mode === "baseline"
       ? platform.baseline.tokens
@@ -113,7 +119,12 @@ function App() {
         ))}
       </nav>
 
-      <section className="explainer-grid">
+      <div className="scene-copy" role="status" aria-live="polite">
+        <strong>{sceneLabels[scene]}</strong>
+        <span>{sceneCopy[scene]}</span>
+      </div>
+
+      <section className={`explainer-grid focus-${scene}`}>
         <article className="stage-panel context-panel">
           <PanelHeader kicker="Context growth" title="A replanning call is no longer a small query." />
           <ContextGrowth tokens={tokens} selectedTokenIds={selectedTokenIds} mode={mode} agents={agents} scene={scene} />
@@ -153,9 +164,17 @@ function App() {
         </div>
         <div className="platform-cards">
           {platforms.map((item) => (
-            <PlatformCard key={item.id} platform={item} active={item.id === platform.id} />
+            <PlatformCard
+              key={item.id}
+              platform={item}
+              active={item.id === platform.id}
+              onSelect={() => setPlatformId(item.id)}
+            />
           ))}
         </div>
+        <p className="data-note">
+          Data source: camera-ready BRACE paper tables. Token chips are synthetic visual encodings tied to the reported token budgets, not raw experiment prompts.
+        </p>
       </section>
 
       <section className="rollout-band" aria-label="Qualitative rollout">
@@ -373,9 +392,23 @@ function MetricRow({ label, value, max, numeric, danger }: { label: string; valu
   );
 }
 
-function PlatformCard({ platform, active }: { platform: (typeof platforms)[number]; active: boolean }) {
+function PlatformCard({
+  platform,
+  active,
+  onSelect,
+}: {
+  platform: (typeof platforms)[number];
+  active: boolean;
+  onSelect: () => void;
+}) {
   return (
-    <button className={`platform-card ${active ? "active" : ""}`} type="button" aria-label={`${platform.label} metrics`}>
+    <button
+      className={`platform-card ${active ? "active" : ""}`}
+      type="button"
+      aria-label={`Show ${platform.label} metrics`}
+      aria-pressed={active}
+      onClick={onSelect}
+    >
       <span>{platform.label}</span>
       <strong>{platform.baseline.tokens} {"->"} {platform.braceErecap.tokens} tokens</strong>
       <div className="mini-bars">
