@@ -6,7 +6,7 @@ This document designs a GitHub Pages deployable interactive explainer for the BR
 
 > When Replanning Becomes the Bottleneck: Budgeted Replanning for Embodied Agents
 
-No implementation is started in this pass. The goal is to define the animation concept, content structure, reusable references, data needs, and technical constraints before building.
+Implementation status: v1 is now implemented as a focused interactive explainer following this plan. The remaining sections keep the original design rationale and future build phasing for later refinement.
 
 ## 1. Paper Understanding
 
