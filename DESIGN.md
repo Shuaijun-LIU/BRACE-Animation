@@ -6,7 +6,7 @@ This document designs a GitHub Pages deployable interactive explainer for the BR
 
 > When Replanning Becomes the Bottleneck: Budgeted Replanning for Embodied Agents
 
-Implementation status: v1 is now implemented as a focused interactive explainer following this plan. The remaining sections keep the original design rationale and future build phasing for later refinement.
+Implementation status: v2 is implemented as a focused guided explainer. The interface is now step-based: the viewer can repeatedly click **Next** to move through the BRACE mechanism without tuning keep ratios, SLOs, agent counts, or platform selectors.
 
 ## 1. Paper Understanding
 
@@ -93,14 +93,13 @@ A single-page interactive explainer, not a marketing landing page. The first vie
 
 ### Intended Visitor Flow
 
-1. Visitor sees an embodied agent loop where context grows over time.
-2. A trigger fires; without BRACE, replanning calls stack up and latency crosses the SLO.
-3. Visitor toggles BRACE on.
-4. The stability gate suppresses churn unless failure-aware override is needed.
-5. E-RECAP prunes tokens progressively; head/tail/selected tokens remain visible.
-6. The planner receives a budgeted context and returns a plan.
-7. Metrics update, showing lower tokens and fewer deadline misses.
-8. Visitor can inspect platform summaries and qualitative rollouts.
+1. Visitor sees context pressure build from task tokens, history, messages, observations, and latest state.
+2. A pressure step explains why reactive replanning can succeed while still missing deadlines.
+3. BRACE's gate is introduced with cooldown, commit stability, and failure-aware override states.
+4. Budget selection is shown as an automatic controller decision, not a user-controlled keep-ratio setting.
+5. E-RECAP prunes progressively while preserving head and tail anchors.
+6. Audit accounting exposes compression, retrieval, planning, and update cost.
+7. Cross-platform metric cards connect the mechanism to paper evidence.
 
 ## 4. Animation Narrative
 
@@ -122,9 +121,8 @@ Visual:
 
 Interaction:
 
-- Toggle: `No BRACE` vs `BRACE`.
-- Slider: number of agents `K = 1, 4, 8`.
-- Slider: episode time / context length.
+- The stepper advances this state automatically.
+- No mode toggle, agent slider, or episode-time slider is exposed in the v2 UI.
 
 Reference influence:
 
@@ -156,9 +154,8 @@ Animation:
 
 Interaction:
 
-- Hover over each gate subrule for one-sentence explanation.
-- Stepper: trigger type = periodic / failure / hazard / coordination.
-- Optional later: show a suppressed-trigger audit outcome.
+- The guided stepper highlights one gate rule at a time.
+- Optional later: add hover details after the Next-first path is stable.
 
 ### Scene 3: E-RECAP Progressive Pruning
 
@@ -188,8 +185,9 @@ Animation states:
 
 Reference influence:
 
-- ViT-Explainer's module-by-module horizontal network, active opacity, and vector/token chips.
-- BertViz/AttentionViz style selector controls for layer focus.
+- ViT-Explainer's module-by-module active focus and token chips.
+- Transformer Explainer's compact explanatory cards.
+- AttentionViz remains useful for matrix/legend thinking, but selector-heavy controls are intentionally not exposed in v2.
 
 ### Scene 4: Budgeted Replanning Call Path
 
@@ -246,34 +244,17 @@ Important wording:
 - "Success can saturate while deadlines fail."
 - "Token reduction helps, but tail-aware budgeting is the actual systems objective."
 
-### Scene 6: Qualitative Recovery
-
-Purpose: connect metrics to visible embodied behavior.
-
-Visual options:
-
-- RoboFactory Pass-Shoe / TakePhoto storyboard.
-- Real robot PickFruit rollout.
-- AirSim multi-agent trigger window.
-
-Animation:
-
-- Baseline lane accumulates delayed replanning decisions.
-- BRACE lane shows fewer admitted calls, budgeted compression, then timely recovery.
-- Use original paper figures as optional static panels in v1, then later replace with frame-by-frame animated assets if videos are available.
-
 ## 5. Proposed Interaction Controls
 
-Keep controls compact and technical:
+Keep the primary path simple:
 
 | Control | Values | Effect |
 |---|---|---|
-| Mode | No BRACE / BRACE / BRACE + E-RECAP | Changes gate behavior and pruning visualization. |
-| Platform | Habitat / RoboFactory / AirSim | Loads platform-specific tokens, SLO, and result metrics. |
-| Agents `K` | 1 / 4 / 8 | Grows context faster and changes latency profile. |
-| Keep ratio `r` | 0.5-1.0 | Changes token pruning intensity in E-RECAP scene. |
-| SLO | default per platform, adjustable | Moves deadline line and recomputes violation indicators. |
-| Step | previous / next / autoplay | Advances the explainer narrative. |
+| Next | step 1 -> step 7 | Advances the explanation through the mechanism. |
+| Back | previous step | Allows recovery without making the page feel like a parameter dashboard. |
+| Step dots | fixed narrative states | Optional direct navigation for reviewers who want to revisit one stage. |
+
+Do not expose manual controls for `K`, keep ratio `r`, SLO, or platform switching in the main explainer. Those settings are fixed internally so the page teaches the method rather than asking the visitor to operate the simulator.
 
 Avoid heavy UI:
 
@@ -300,9 +281,9 @@ Use fixed token color categories:
 
 | Token type | Color role |
 |---|---|
-| Task spec / head tokens | lavender |
-| Previous plans and observations | green |
-| Current observation / tail tokens | blue |
+| Task spec / head tokens | blue |
+| Previous plans and observations | neutral / amber |
+| Current observation / tail tokens | green |
 | Utility-selected tokens | bright blue |
 | Pruned tokens | gray with fade-out |
 | Deadline violation | red |
@@ -317,7 +298,7 @@ Use fixed token color categories:
 
 ## 7. Technical Direction
 
-Recommended stack for v1:
+Recommended stack for v2:
 
 ```text
 Vite + React + TypeScript
@@ -331,7 +312,7 @@ GitHub Pages static deployment
 Why React for this repo:
 
 - The local React Bits library provides reusable patterns if needed.
-- State-driven animation suits mode/platform/slider controls.
+- State-driven animation suits a fixed guided walkthrough with highlighted active subsystems.
 - Vite static export is straightforward for GitHub Pages.
 
 Why not start with Three.js:
@@ -370,31 +351,13 @@ type TokenSegment = {
 };
 ```
 
-For v1, token positions can be synthetic but numerically tied to paper metrics. The animation does not need to replay real tokens.
+For the current guided version, token positions can be synthetic but numerically tied to paper metrics. The animation does not need to replay real tokens.
 
-## 9. Source Assets To Prepare Later
+## 9. Source Assets Policy
 
-From the paper folder:
+The current page does not use paper figures or rollout images. It should remain deployable from source code plus lightweight static metric data.
 
-```text
-/data/private/user2/workspace/1.Replanning/BRACE/BRACE-icml2026-camera-ready/fig/
-/data/private/user2/workspace/1.Replanning/BRACE/BRACE-icml2026-camera-ready/poster_v1/assets/
-```
-
-Candidate assets:
-
-- `poster_v1/assets/overview.png`
-- `poster_v1/assets/erecap_method_architecture.png`
-- `fig/latency_cdf_meta_habitat.png`
-- `fig/slo_violation_bar.png`
-- `fig/diagnostics_token_latency_meta_habitat.png`
-- `fig/diagnostics_token_latency_robofactory.png`
-- `fig/airsimnh_retained_collage_main.jpg`
-- `fig/take_fruit_real.pdf` or converted raster frames later
-- `fig/robofactory_example_baseline.jpg`
-- `fig/robofactory_example_method.jpg`
-
-Do not commit large videos or raw experiment logs to this repo unless they are compressed and needed for the final page.
+If visual rollouts are added later, prefer purpose-built animation frames or small compressed clips rather than directly embedding paper figures. Do not commit large videos or raw experiment logs to this repo.
 
 ## 10. Proposed Repository Layout For Implementation
 
@@ -403,23 +366,14 @@ Do not commit large videos or raw experiment logs to this repo unless they are c
 ├── README.md
 ├── DESIGN.md
 ├── package.json
-├── index.html
 ├── vite.config.ts
-├── src/
-│   ├── App.tsx
-│   ├── data/
-│   │   ├── metrics.ts
-│   │   └── scenes.ts
-│   ├── components/
-│   │   ├── ContextGrowthScene.tsx
-│   │   ├── BraceControllerScene.tsx
-│   │   ├── ErecapPruningScene.tsx
-│   │   ├── CallPathAuditScene.tsx
-│   │   └── EvidenceDashboard.tsx
-│   └── styles/
-│       └── app.css
-└── public/
-    └── assets/
+├── app/
+│   ├── index.html
+│   └── src/
+│       ├── App.tsx
+│       ├── data.ts
+│       └── styles.css
+└── index.html
 ```
 
 ## 11. Build Phasing
@@ -440,13 +394,13 @@ Do not commit large videos or raw experiment logs to this repo unless they are c
 ### Phase C: E-RECAP Interaction
 
 - Add layered token pruning.
-- Add keep ratio control.
+- Use fixed controller-driven pruning states.
 - Add head/tail/selected token legend.
 
 ### Phase D: Evidence And Rollouts
 
 - Add platform comparison cards.
-- Add qualitative panels.
+- Add qualitative panels only if they can be code-driven or use lightweight non-paper assets.
 - Add citations/links to paper and repository.
 
 ### Phase E: Polish And Verification
