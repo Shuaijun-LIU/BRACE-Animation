@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type CSSProperties } from "react";
 import { makeTokens, platforms, type PlatformId, type TokenSegment } from "./data";
 
 type FocusArea = "context" | "pressure" | "gate" | "budget" | "compression" | "audit" | "evidence";
+type LoopNode = "observe" | "trigger" | "gate" | "budget" | "compress" | "planner" | "execute" | "audit";
 
 type GuidedStep = {
   id: string;
@@ -10,6 +11,7 @@ type GuidedStep = {
   narrative: string;
   takeaway: string;
   focus: FocusArea;
+  node: LoopNode;
   platformId: PlatformId;
   pressure: number;
   keepTarget: number;
@@ -17,15 +19,27 @@ type GuidedStep = {
   activePhases: string[];
 };
 
+const loopNodes: { id: LoopNode; label: string; detail: string }[] = [
+  { id: "observe", label: "Observe", detail: "C_t grows" },
+  { id: "trigger", label: "Trigger", detail: "u_t fires" },
+  { id: "gate", label: "Gate", detail: "stability" },
+  { id: "budget", label: "Budget", detail: "B_t" },
+  { id: "compress", label: "E-RECAP", detail: "prune" },
+  { id: "planner", label: "Planner", detail: "call" },
+  { id: "execute", label: "Execute", detail: "act" },
+  { id: "audit", label: "Audit", detail: "l_t vs SLO" },
+];
+
 const guidedSteps: GuidedStep[] = [
   {
     id: "context",
     label: "Context",
-    title: "A replanning call begins with accumulated context.",
+    title: "The loop starts by collecting a live replanning context.",
     narrative:
-      "Task instructions, prior plans, observations, peer messages, and the latest state all enter the prompt before the planner can act.",
-    takeaway: "BRACE starts from a systems view: context is a runtime cost, not just model input.",
+      "The buffer contains task anchors, plan history, peer messages, observations, and the newest state. The same tokens will keep flowing through the loop below.",
+    takeaway: "Context is part of the control system. The animation keeps it visible through every stage.",
     focus: "context",
+    node: "observe",
     platformId: "habitat",
     pressure: 0.42,
     keepTarget: 52,
@@ -35,11 +49,12 @@ const guidedSteps: GuidedStep[] = [
   {
     id: "pressure",
     label: "Pressure",
-    title: "More coordination creates more replanning pressure.",
+    title: "Triggers arrive as the context grows and agents coordinate.",
     narrative:
-      "Reactive replanning can keep task success high while repeated calls push latency past the deadline.",
-    takeaway: "Success alone is not enough when the control loop has real-time constraints.",
+      "The pulse moves from observation to trigger. Without control, every salient change can request another planner call.",
+    takeaway: "The bottleneck is repeated replanning under live deadlines, not task failure alone.",
     focus: "pressure",
+    node: "trigger",
     platformId: "airsim",
     pressure: 0.86,
     keepTarget: 52,
@@ -49,11 +64,12 @@ const guidedSteps: GuidedStep[] = [
   {
     id: "gate",
     label: "Gate",
-    title: "BRACE turns raw triggers into deliberate replanning decisions.",
+    title: "The stability gate decides whether this trigger deserves a call.",
     narrative:
-      "The gate weighs trigger salience, cooldown spacing, commit stability, and failure-aware overrides before admitting a new planner call.",
-    takeaway: "Replanning becomes budgeted control rather than reflexive churn.",
+      "Cooldown, commit stability, and failure-aware override are all visible in the controller. The active rule changes the gate state.",
+    takeaway: "This is the anti-churn part of the method: not every trigger becomes replanning.",
     focus: "gate",
+    node: "gate",
     platformId: "robofactory",
     pressure: 0.72,
     keepTarget: 52,
@@ -63,11 +79,12 @@ const guidedSteps: GuidedStep[] = [
   {
     id: "budget",
     label: "Budget",
-    title: "The controller fixes the call budget before planning.",
+    title: "An admitted call receives a budget for the entire path.",
     narrative:
-      "BRACE connects the deadline, context load, uncertainty, and coordination state into a budget for the whole call path.",
-    takeaway: "There is no keep-ratio knob for the viewer; the budget is part of the method.",
+      "The loop now links SLO, context pressure, and call phases. The budget is method behavior, not a slider for the viewer.",
+    takeaway: "Budgeting applies to retrieval, compression, planning, update, and audit together.",
     focus: "budget",
+    node: "budget",
     platformId: "habitat",
     pressure: 0.62,
     keepTarget: 44,
@@ -77,11 +94,12 @@ const guidedSteps: GuidedStep[] = [
   {
     id: "compression",
     label: "E-RECAP",
-    title: "E-RECAP prunes the middle while protecting anchors.",
+    title: "E-RECAP progressively prunes the middle context.",
     narrative:
-      "Head task tokens and the latest tail state remain protected; lower-utility middle tokens are thinned before the planner sees the prompt.",
-    takeaway: "The visual focuses on policy behavior, not a user-adjustable compression slider.",
+      "The head and tail anchors stay pinned while low-utility middle tokens fade across layers. The surviving vector chips become the planner input.",
+    takeaway: "This step should feel like token processing, not a static metric card.",
     focus: "compression",
+    node: "compress",
     platformId: "airsim",
     pressure: 0.7,
     keepTarget: 27,
@@ -91,11 +109,12 @@ const guidedSteps: GuidedStep[] = [
   {
     id: "audit",
     label: "Audit",
-    title: "The call is audited phase by phase.",
+    title: "The planner call returns to execution with phase-level accounting.",
     narrative:
-      "Compression, retrieval, planning, and update cost are tracked separately so overhead is visible instead of hidden inside one latency number.",
-    takeaway: "BRACE explains where time is spent, not only whether the plan succeeded.",
+      "The packet flows through planner, update, and audit. Compression is shown as real overhead, while the audit compares total latency to the deadline.",
+    takeaway: "The loop view makes the systems claim visible: time is measured around the whole call path.",
     focus: "audit",
+    node: "audit",
     platformId: "habitat",
     pressure: 0.58,
     keepTarget: 22,
@@ -105,11 +124,12 @@ const guidedSteps: GuidedStep[] = [
   {
     id: "evidence",
     label: "Evidence",
-    title: "The mechanism maps to lower token load and fewer deadline misses.",
+    title: "The same loop explains the cross-platform results.",
     narrative:
-      "Across navigation, manipulation, and traffic scenes, baseline replanning often succeeds but violates timing budgets; BRACE+E-RECAP reduces that pressure.",
-    takeaway: "The project page should teach the mechanism first, then use metrics as evidence.",
+      "The workbench stays visible while the evidence strip expands: baseline replanning often succeeds but violates timing budgets; BRACE+E-RECAP reduces pressure.",
+    takeaway: "The metrics are evidence for the loop, not a replacement for explaining the mechanism.",
     focus: "evidence",
+    node: "execute",
     platformId: "airsim",
     pressure: 0.64,
     keepTarget: 26,
@@ -144,15 +164,29 @@ function metricWidth(value: number, max: number) {
 
 function tokenClass(token: TokenSegment, keptTokens: Set<string>) {
   if (!keptTokens.has(token.id)) {
-    return "token pruned";
+    return "token-chip pruned";
   }
   if (token.protectedSlot === "head") {
-    return "token head";
+    return "token-chip head";
   }
   if (token.protectedSlot === "tail") {
-    return "token tail";
+    return "token-chip tail";
   }
-  return "token middle";
+  return token.utility > 0.68 ? "token-chip middle selected" : "token-chip middle";
+}
+
+function utilityBars(token: TokenSegment) {
+  return [0, 1, 2, 3].map((index) => {
+    const wave = Math.sin((index + 1) * (token.utility + 0.7)) * 0.5 + 0.5;
+    return Math.max(18, Math.round((0.35 + wave * 0.65) * 100));
+  });
+}
+
+function loopIndex(node: LoopNode) {
+  return Math.max(
+    0,
+    loopNodes.findIndex((item) => item.id === node),
+  );
 }
 
 function App() {
@@ -172,10 +206,10 @@ function App() {
       <header className="topbar">
         <div>
           <p className="eyebrow">Interactive method explainer</p>
-          <h1>BRACE: Budgeted Replanning for Embodied Agents</h1>
+          <h1>Budgeted Replanning for Embodied Agents</h1>
           <p className="lede">
-            A step-by-step walkthrough of how BRACE gates replanning, budgets context, and uses
-            E-RECAP to reduce deadline misses in embodied-agent control loops.
+            A loop-based walkthrough of how a replanning controller gates triggers, budgets context,
+            compresses tokens with E-RECAP, and audits latency against real-time deadlines.
           </p>
         </div>
         <div className="paper-card">
@@ -216,7 +250,7 @@ function App() {
         </div>
       </section>
 
-      <section className="story-layout" aria-label="BRACE walkthrough">
+      <section className="story-layout" aria-label="Budgeted replanning walkthrough">
         <article className="story-card">
           <span className="section-label">{step.label}</span>
           <h2>{step.title}</h2>
@@ -227,10 +261,7 @@ function App() {
           </div>
         </article>
 
-        <section className="stage-card">
-          <ModuleRail focus={step.focus} />
-          <ActiveVisual activePhases={step.activePhases} keptTokens={keptTokens} platform={platform} step={step} tokens={tokens} />
-        </section>
+        <LoopWorkbench keptTokens={keptTokens} platform={platform} step={step} tokens={tokens} />
 
         <aside className="context-card">
           <span className="section-label">Current scene</span>
@@ -262,94 +293,119 @@ function App() {
   );
 }
 
-function ModuleRail({ focus }: { focus: FocusArea }) {
-  const modules = [
-    { id: "context", label: "Context" },
-    { id: "gate", label: "Gate" },
-    { id: "budget", label: "Budget" },
-    { id: "compression", label: "E-RECAP" },
-    { id: "audit", label: "Audit" },
-  ];
+function LoopWorkbench({
+  keptTokens,
+  platform,
+  step,
+  tokens,
+}: {
+  keptTokens: Set<string>;
+  platform: (typeof platforms)[number];
+  step: GuidedStep;
+  tokens: TokenSegment[];
+}) {
+  const keptCount = keptTokens.size;
+  const prunedCount = tokens.length - keptCount;
 
   return (
-    <div className="module-rail" aria-label="BRACE pipeline">
-      {modules.map((module) => (
-        <div className={focus === module.id || (focus === "pressure" && module.id === "context") ? "active" : ""} key={module.id}>
-          <span />
-          <strong>{module.label}</strong>
+    <section className={`stage-card focus-${step.focus}`} aria-label="Replanning loop workbench">
+      <div className="workbench-header">
+        <div>
+          <span>Live loop</span>
+          <strong>{loopNodes[loopIndex(step.node)].label}</strong>
+        </div>
+        <div>
+          <span>Raw context</span>
+          <strong>{tokens.length} tokens</strong>
+        </div>
+        <div>
+          <span>Planner input</span>
+          <strong>{keptCount} kept</strong>
+        </div>
+        <div>
+          <span>Pruned</span>
+          <strong>{prunedCount}</strong>
+        </div>
+      </div>
+
+      <LoopRail activeNode={step.node} />
+
+      <div className="workbench-grid">
+        <TokenBuffer focus={step.focus} keptTokens={keptTokens} pressure={step.pressure} tokens={tokens} />
+        <ControllerCard focus={step.focus} gate={step.gate} />
+        <ErecapCard focus={step.focus} keptCount={keptCount} totalCount={tokens.length} />
+        <PlannerAuditCard activePhases={step.activePhases} focus={step.focus} platform={platform} />
+      </div>
+
+      <EvidenceRibbon focus={step.focus} />
+    </section>
+  );
+}
+
+function LoopRail({ activeNode }: { activeNode: LoopNode }) {
+  const activeIndex = loopIndex(activeNode);
+
+  return (
+    <div className="loop-rail" style={{ "--pulse-index": activeIndex } as CSSProperties}>
+      <span className="loop-pulse" />
+      {loopNodes.map((node, index) => (
+        <div className={index === activeIndex ? "active" : index < activeIndex ? "visited" : ""} key={node.id}>
+          <strong>{node.label}</strong>
+          <span>{node.detail}</span>
         </div>
       ))}
     </div>
   );
 }
 
-function ActiveVisual({
-  activePhases,
-  keptTokens,
-  platform,
-  step,
-  tokens,
-}: {
-  activePhases: string[];
-  keptTokens: Set<string>;
-  platform: (typeof platforms)[number];
-  step: GuidedStep;
-  tokens: TokenSegment[];
-}) {
-  if (step.focus === "gate") {
-    return <GateVisual gate={step.gate} />;
-  }
-  if (step.focus === "budget") {
-    return <BudgetVisual platform={platform} />;
-  }
-  if (step.focus === "compression") {
-    return <CompressionVisual keptCount={keptTokens.size} totalCount={tokens.length} />;
-  }
-  if (step.focus === "audit") {
-    return <AuditVisual activePhases={activePhases} />;
-  }
-  if (step.focus === "evidence") {
-    return <EvidenceVisual />;
-  }
-  return <ContextVisual keptTokens={keptTokens} pressure={step.pressure} tokens={tokens} variant={step.focus} />;
-}
-
-function ContextVisual({
+function TokenBuffer({
+  focus,
   keptTokens,
   pressure,
   tokens,
-  variant,
 }: {
+  focus: FocusArea;
   keptTokens: Set<string>;
   pressure: number;
   tokens: TokenSegment[];
-  variant: FocusArea;
 }) {
+  const visibleTokens = tokens.slice(0, 32);
+
   return (
-    <div className="visual-panel">
-      <div className="visual-header">
-        <span>{variant === "pressure" ? "Coordination pressure" : "Context buffer"}</span>
-        <strong>{Math.round(pressure * 100)}%</strong>
+    <article className={focus === "context" || focus === "pressure" ? "work-module active" : "work-module"}>
+      <div className="module-title">
+        <span>Context buffer</span>
+        <strong>{Math.round(pressure * 100)}% pressure</strong>
       </div>
       <div className="pressure-meter">
         <div style={{ width: `${pressure * 100}%` }} />
       </div>
-      <div className="token-grid" aria-label="Token map">
-        {tokens.map((token) => (
-          <span className={tokenClass(token, keptTokens)} key={token.id} />
+      <div className="token-stream" aria-label="Token processing stream">
+        {visibleTokens.map((token, index) => (
+          <div
+            className={tokenClass(token, keptTokens)}
+            key={token.id}
+            style={{ "--delay": `${index * 18}ms`, "--utility": token.utility.toFixed(2) } as CSSProperties}
+          >
+            <div className="chip-bars">
+              {utilityBars(token).map((height, barIndex) => (
+                <i key={`${token.id}-${barIndex}`} style={{ height: `${height}%` }} />
+              ))}
+            </div>
+          </div>
         ))}
       </div>
-      <div className="legend">
-        <span className="head">Head anchor</span>
-        <span className="middle">Middle context</span>
-        <span className="tail">Latest state</span>
-        <span className="pruned">Pruned later</span>
+      <div className="token-legend">
+        <span className="head">Head</span>
+        <span className="middle">Middle</span>
+        <span className="selected">Utility-selected</span>
+        <span className="tail">Tail</span>
       </div>
-    </div>
+    </article>
   );
 }
 
-function GateVisual({ gate }: { gate: GuidedStep["gate"] }) {
+function ControllerCard({ focus, gate }: { focus: FocusArea; gate: GuidedStep["gate"] }) {
   const gateText = {
     open: "Admit",
     cooldown: "Wait",
@@ -358,70 +414,38 @@ function GateVisual({ gate }: { gate: GuidedStep["gate"] }) {
   }[gate];
 
   return (
-    <div className="visual-panel">
-      <div className="flow">
-        <div className="flow-node trigger">
-          <span>u_t</span>
-          <strong>Trigger</strong>
-        </div>
-        <div className="flow-arrow" />
-        <div className={`flow-node gate ${gate}`}>
-          <span>{gateText}</span>
-          <strong>Stability gate</strong>
-        </div>
-        <div className="flow-arrow" />
-        <div className="flow-node budget">
-          <span>B_t</span>
-          <strong>Budgeted call</strong>
-        </div>
+    <article className={focus === "gate" || focus === "budget" ? "work-module active" : "work-module"}>
+      <div className="module-title">
+        <span>Controller</span>
+        <strong>{gateText}</strong>
+      </div>
+      <div className="controller-flow">
+        <div className="controller-node trigger">u_t</div>
+        <div className={`controller-node gate ${gate}`}>{gateText}</div>
+        <div className="controller-node budget">B_t</div>
       </div>
       <div className="rule-stack">
-        <div className={gate === "cooldown" ? "active" : ""}>Cooldown spacing</div>
-        <div className={gate === "commit" ? "active" : ""}>Commit stability</div>
-        <div className={gate === "override" ? "active" : ""}>Failure-aware override</div>
+        <div className={gate === "cooldown" ? "active" : ""}>Cooldown</div>
+        <div className={gate === "commit" ? "active" : ""}>Commit</div>
+        <div className={gate === "override" ? "active" : ""}>Override</div>
       </div>
-    </div>
+    </article>
   );
 }
 
-function BudgetVisual({ platform }: { platform: (typeof platforms)[number] }) {
-  return (
-    <div className="visual-panel budget-visual">
-      <div className="budget-line">
-        <div>
-          <span>SLO_t</span>
-          <strong>{platform.sloMs} ms</strong>
-        </div>
-        <i />
-        <div>
-          <span>C_t</span>
-          <strong>Context</strong>
-        </div>
-        <i />
-        <div>
-          <span>B_t</span>
-          <strong>Call budget</strong>
-        </div>
-      </div>
-      <div className="call-path">
-        <span>retrieve</span>
-        <span>plan</span>
-        <span>update</span>
-        <span>audit</span>
-      </div>
-    </div>
-  );
-}
-
-function CompressionVisual({ keptCount, totalCount }: { keptCount: number; totalCount: number }) {
-  const layers = [totalCount, 44, 34, keptCount];
+function ErecapCard({ focus, keptCount, totalCount }: { focus: FocusArea; keptCount: number; totalCount: number }) {
+  const layers = [totalCount, Math.max(keptCount, 44), Math.max(keptCount, 34), keptCount];
 
   return (
-    <div className="visual-panel">
+    <article className={focus === "compression" || focus === "budget" ? "work-module active" : "work-module"}>
+      <div className="module-title">
+        <span>E-RECAP layers</span>
+        <strong>{`${totalCount} to ${keptCount}`}</strong>
+      </div>
       <div className="layer-stack">
         {layers.map((count, index) => (
-          <div className="layer-row" key={`${count}-${index}`}>
-            <span>{index === 0 ? "Input" : `Layer ${index}`}</span>
+          <div className={index === layers.length - 1 ? "layer-row final" : "layer-row"} key={`${count}-${index}`}>
+            <span>{index === 0 ? "Raw" : `L${index}`}</span>
             <div>
               <i style={{ width: metricWidth(count, totalCount) }} />
             </div>
@@ -430,42 +454,57 @@ function CompressionVisual({ keptCount, totalCount }: { keptCount: number; total
         ))}
       </div>
       <div className="anchor-strip">
-        <span>Head task anchor</span>
-        <span>High-utility middle</span>
-        <span>Latest tail state</span>
+        <span>head pinned</span>
+        <span>utility kept</span>
+        <span>tail pinned</span>
       </div>
-    </div>
+    </article>
   );
 }
 
-function AuditVisual({ activePhases }: { activePhases: string[] }) {
+function PlannerAuditCard({
+  activePhases,
+  focus,
+  platform,
+}: {
+  activePhases: string[];
+  focus: FocusArea;
+  platform: (typeof platforms)[number];
+}) {
+  const totalMs = Object.entries(phaseBudgets)
+    .filter(([phase]) => activePhases.includes(phase))
+    .reduce((sum, [, ms]) => sum + ms, 0);
+
   return (
-    <div className="visual-panel">
-      <div className="phase-strip">
+    <article className={focus === "audit" || focus === "evidence" ? "work-module active" : "work-module"}>
+      <div className="module-title">
+        <span>Planner + audit</span>
+        <strong>{`${totalMs} ms`}</strong>
+      </div>
+      <div className="phase-mini">
         {Object.entries(phaseBudgets).map(([phase, ms]) => (
           <div className={activePhases.includes(phase) ? "active" : ""} key={phase}>
             <span>{phase}</span>
-            <strong>{ms} ms</strong>
+            <i style={{ height: `${Math.max(24, ms / 2)}px` }} />
           </div>
         ))}
       </div>
-      <div className="audit-total">
-        <span>Observed call path</span>
-        <strong>{Object.values(phaseBudgets).reduce((sum, value) => sum + value, 0)} ms</strong>
+      <div className="slo-compare">
+        <span>{`SLO ${platform.sloMs} ms`}</span>
+        <strong>{platform.braceErecap.latencyP95Ms <= platform.sloMs ? "within budget" : "over budget"}</strong>
       </div>
-    </div>
+    </article>
   );
 }
 
-function EvidenceVisual() {
+function EvidenceRibbon({ focus }: { focus: FocusArea }) {
   return (
-    <div className="visual-panel evidence-visual">
+    <div className={focus === "evidence" ? "evidence-ribbon active" : "evidence-ribbon"}>
       {platforms.map((item) => (
-        <article key={item.id}>
+        <div key={item.id}>
           <span>{item.label}</span>
           <strong>{`${item.baseline.sloViolationPct}% to ${item.braceErecap.sloViolationPct}%`}</strong>
-          <p>SLO violation</p>
-        </article>
+        </div>
       ))}
     </div>
   );

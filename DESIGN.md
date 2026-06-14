@@ -1,4 +1,4 @@
-# BRACE Interactive Animation Design
+# Budgeted Replanning Interactive Animation Design
 
 Date: 2026-06-12
 
