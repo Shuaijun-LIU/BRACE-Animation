@@ -373,14 +373,16 @@ function App() {
         <div className="title-block">
           <p className="eyebrow">Interactive method explainer</p>
           <h1>Budgeted Replanning for Embodied Agents</h1>
-          <div className="title-paper">
-            <span>When Replanning Becomes the Bottleneck</span>
-            <strong>Budgeted controller, context compression, and SLO-aware audit signals.</strong>
+          <div className="title-summary">
+            <div>
+              <span>When Replanning Becomes the Bottleneck</span>
+              <strong>Budgeted controller, context compression, and SLO-aware audit signals.</strong>
+            </div>
+            <p>
+              A loop-based walkthrough of how a replanning controller gates triggers, budgets context,
+              compresses tokens with E-RECAP, and audits latency against real-time deadlines.
+            </p>
           </div>
-          <p className="lede">
-            A loop-based walkthrough of how a replanning controller gates triggers, budgets context,
-            compresses tokens with E-RECAP, and audits latency against real-time deadlines.
-          </p>
         </div>
       </header>
 
