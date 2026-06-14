@@ -377,7 +377,6 @@ function App() {
               <h1>Budgeted Replanning for Embodied Agents</h1>
             </div>
             <a className="project-home-link" href="https://nebulis-lab.com/BRACE/" rel="noreferrer" target="_blank">
-              <img src="./images/logo_dark_mini.svg" alt="" aria-hidden="true" />
               Project site
             </a>
           </div>
