@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { makeTokens, platforms, type PlatformId, type TokenSegment } from "./data";
 
-type FocusArea = "context" | "gate" | "budget" | "compression" | "audit" | "evidence";
+type FocusArea = "context" | "pressure" | "gate" | "budget" | "compression" | "audit" | "evidence";
 
 type GuidedStep = {
   id: string;
@@ -21,10 +21,10 @@ const guidedSteps: GuidedStep[] = [
   {
     id: "context",
     label: "Context",
-    title: "Embodied agents carry the full recent world state into replanning.",
+    title: "A replanning call begins with accumulated context.",
     narrative:
-      "A task prompt, observation history, peer messages, and the latest simulator state all compete for the same context window before the next planner call.",
-    takeaway: "The bottleneck is not only whether the task succeeds, but whether replanning stays inside the deadline.",
+      "Task instructions, prior plans, observations, peer messages, and the latest state all enter the prompt before the planner can act.",
+    takeaway: "BRACE starts from a systems view: context is a runtime cost, not just model input.",
     focus: "context",
     platformId: "habitat",
     pressure: 0.42,
@@ -35,11 +35,11 @@ const guidedSteps: GuidedStep[] = [
   {
     id: "pressure",
     label: "Pressure",
-    title: "Reactive replanning keeps firing as coordination pressure grows.",
+    title: "More coordination creates more replanning pressure.",
     narrative:
-      "In multi-agent scenes, every new message or state change can trigger another planner call, so success can hide excessive churn and repeated deadline misses.",
-    takeaway: "The paper treats replanning frequency and context size as first-class runtime costs.",
-    focus: "context",
+      "Reactive replanning can keep task success high while repeated calls push latency past the deadline.",
+    takeaway: "Success alone is not enough when the control loop has real-time constraints.",
+    focus: "pressure",
     platformId: "airsim",
     pressure: 0.86,
     keepTarget: 52,
@@ -49,10 +49,10 @@ const guidedSteps: GuidedStep[] = [
   {
     id: "gate",
     label: "Gate",
-    title: "BRACE admits replanning through a stability-aware gate.",
+    title: "BRACE turns raw triggers into deliberate replanning decisions.",
     narrative:
-      "The controller checks trigger salience, cooldown spacing, commit stability, and failure-aware overrides before spending another planner call.",
-    takeaway: "Replanning becomes a budgeted decision instead of a reflex.",
+      "The gate weighs trigger salience, cooldown spacing, commit stability, and failure-aware overrides before admitting a new planner call.",
+    takeaway: "Replanning becomes budgeted control rather than reflexive churn.",
     focus: "gate",
     platformId: "robofactory",
     pressure: 0.72,
@@ -63,10 +63,10 @@ const guidedSteps: GuidedStep[] = [
   {
     id: "budget",
     label: "Budget",
-    title: "A per-call budget is selected before retrieval and planning run.",
+    title: "The controller fixes the call budget before planning.",
     narrative:
-      "BRACE connects the SLO, current context, outstanding uncertainty, and coordination load into one fixed budget for the upcoming call path.",
-    takeaway: "Users do not tune keep ratios here; the explanation follows the controller's automatic budget path.",
+      "BRACE connects the deadline, context load, uncertainty, and coordination state into a budget for the whole call path.",
+    takeaway: "There is no keep-ratio knob for the viewer; the budget is part of the method.",
     focus: "budget",
     platformId: "habitat",
     pressure: 0.62,
@@ -77,10 +77,10 @@ const guidedSteps: GuidedStep[] = [
   {
     id: "compression",
     label: "E-RECAP",
-    title: "E-RECAP compresses the middle context while protecting anchors.",
+    title: "E-RECAP prunes the middle while protecting anchors.",
     narrative:
-      "The head task tokens and latest tail state remain protected, while lower-utility middle tokens are progressively thinned before the planner sees the prompt.",
-    takeaway: "The compression policy is illustrated as a fixed controller step, not a manual slider.",
+      "Head task tokens and the latest tail state remain protected; lower-utility middle tokens are thinned before the planner sees the prompt.",
+    takeaway: "The visual focuses on policy behavior, not a user-adjustable compression slider.",
     focus: "compression",
     platformId: "airsim",
     pressure: 0.7,
@@ -91,10 +91,10 @@ const guidedSteps: GuidedStep[] = [
   {
     id: "audit",
     label: "Audit",
-    title: "Every call is audited by phase, token load, and deadline status.",
+    title: "The call is audited phase by phase.",
     narrative:
-      "Compression, retrieval, planning, and update phases are measured separately so overhead can be attributed instead of hidden inside one latency number.",
-    takeaway: "The audit view explains why BRACE can improve SLO behavior without changing task success alone.",
+      "Compression, retrieval, planning, and update cost are tracked separately so overhead is visible instead of hidden inside one latency number.",
+    takeaway: "BRACE explains where time is spent, not only whether the plan succeeded.",
     focus: "audit",
     platformId: "habitat",
     pressure: 0.58,
@@ -105,10 +105,10 @@ const guidedSteps: GuidedStep[] = [
   {
     id: "evidence",
     label: "Evidence",
-    title: "The same story appears across navigation, manipulation, and traffic.",
+    title: "The mechanism maps to lower token load and fewer deadline misses.",
     narrative:
-      "Static metrics from the paper are converted into comparable bars: baseline calls often succeed but exceed latency budgets, while BRACE+E-RECAP cuts token load and SLO violations.",
-    takeaway: "The final page should teach the mechanism first, then use metrics as evidence.",
+      "Across navigation, manipulation, and traffic scenes, baseline replanning often succeeds but violates timing budgets; BRACE+E-RECAP reduces that pressure.",
+    takeaway: "The project page should teach the mechanism first, then use metrics as evidence.",
     focus: "evidence",
     platformId: "airsim",
     pressure: 0.64,
@@ -117,14 +117,6 @@ const guidedSteps: GuidedStep[] = [
     activePhases: ["compression", "retrieval", "planner", "update"],
   },
 ];
-
-const tokenKindLabels: Record<TokenSegment["kind"], string> = {
-  task: "Task",
-  history: "History",
-  message: "Message",
-  observation: "Observation",
-  tail: "Latest",
-};
 
 const phaseBudgets = {
   compression: 18,
@@ -150,6 +142,19 @@ function metricWidth(value: number, max: number) {
   return `${Math.max(4, Math.min(100, (value / max) * 100))}%`;
 }
 
+function tokenClass(token: TokenSegment, keptTokens: Set<string>) {
+  if (!keptTokens.has(token.id)) {
+    return "token pruned";
+  }
+  if (token.protectedSlot === "head") {
+    return "token head";
+  }
+  if (token.protectedSlot === "tail") {
+    return "token tail";
+  }
+  return "token middle";
+}
+
 function App() {
   const [stepIndex, setStepIndex] = useState(0);
   const step = guidedSteps[stepIndex];
@@ -166,35 +171,35 @@ function App() {
     <main className="app-shell">
       <header className="topbar">
         <div>
-          <p className="eyebrow">BRACE guided explainer</p>
-          <h1>Budgeted replanning, explained one step at a time.</h1>
+          <p className="eyebrow">Interactive method explainer</p>
+          <h1>BRACE: Budgeted Replanning for Embodied Agents</h1>
           <p className="lede">
-            A GitHub Pages friendly animation for the BRACE paper. The page now follows a fixed
-            narrative: click next, watch the active subsystem change, and connect the mechanism to
-            the paper metrics.
+            A step-by-step walkthrough of how BRACE gates replanning, budgets context, and uses
+            E-RECAP to reduce deadline misses in embodied-agent control loops.
           </p>
         </div>
         <div className="paper-card">
           <span>Paper focus</span>
           <strong>When Replanning Becomes the Bottleneck</strong>
-          <p>Budgeted controller, E-RECAP compression, and SLO-aware auditing for embodied agents.</p>
+          <p>Budgeted controller, context compression, and SLO-aware audit signals.</p>
         </div>
       </header>
 
       <section className="guide-bar" aria-label="Guided steps">
-        <div className="step-dots">
-          {guidedSteps.map((item, index) => (
-            <button
-              className={index === stepIndex ? "active" : index < stepIndex ? "visited" : ""}
-              key={item.id}
-              onClick={() => setStepIndex(index)}
-              type="button"
-              aria-label={`Go to ${item.label}`}
-            >
-              <span>{index + 1}</span>
-              <strong>{item.label}</strong>
-            </button>
-          ))}
+        <div className="progress-cluster">
+          <span>{`Step ${stepIndex + 1} of ${guidedSteps.length}`}</span>
+          <strong>{step.label}</strong>
+          <div className="step-dots">
+            {guidedSteps.map((item, index) => (
+              <button
+                className={index === stepIndex ? "active" : index < stepIndex ? "visited" : ""}
+                key={item.id}
+                onClick={() => setStepIndex(index)}
+                type="button"
+                aria-label={`Go to ${item.label}`}
+              />
+            ))}
+          </div>
         </div>
         <div className="guide-actions">
           <button
@@ -211,108 +216,140 @@ function App() {
         </div>
       </section>
 
-      <section className="current-step">
-        <div>
-          <span>{`Step ${stepIndex + 1} / ${guidedSteps.length}`}</span>
+      <section className="story-layout" aria-label="BRACE walkthrough">
+        <article className="story-card">
+          <span className="section-label">{step.label}</span>
           <h2>{step.title}</h2>
           <p>{step.narrative}</p>
-        </div>
-        <aside>
-          <strong>Takeaway</strong>
-          <p>{step.takeaway}</p>
+          <div className="takeaway">
+            <strong>Takeaway</strong>
+            <p>{step.takeaway}</p>
+          </div>
+        </article>
+
+        <section className="stage-card">
+          <ModuleRail focus={step.focus} />
+          <ActiveVisual activePhases={step.activePhases} keptTokens={keptTokens} platform={platform} step={step} tokens={tokens} />
+        </section>
+
+        <aside className="context-card">
+          <span className="section-label">Current scene</span>
+          <h2>{platform.label}</h2>
+          <p>{platform.scenario}</p>
+          <MetricRow
+            label="P95 latency"
+            base={platform.baseline.latencyP95Ms}
+            brace={platform.braceErecap.latencyP95Ms}
+            max={Math.max(platform.baseline.latencyP95Ms, platform.braceErecap.latencyP95Ms, platform.sloMs)}
+            suffix=" ms"
+          />
+          <MetricRow
+            label="Token load"
+            base={platform.baseline.tokens}
+            brace={platform.braceErecap.tokens}
+            max={Math.max(platform.baseline.tokens, platform.braceErecap.tokens)}
+            suffix=""
+          />
+          <div className="slo-note">
+            <span>SLO</span>
+            <strong>{platform.sloMs} ms</strong>
+          </div>
         </aside>
       </section>
 
-      <section className="explainer-grid" aria-label="BRACE explainer">
-        <ContextPanel focus={step.focus} keptTokens={keptTokens} pressure={step.pressure} tokens={tokens} />
-        <ControllerPanel focus={step.focus} gate={step.gate} platformId={step.platformId} />
-        <CompressionPanel focus={step.focus} keptCount={keptTokens.size} totalCount={tokens.length} />
-        <MetricsPanel activePhases={step.activePhases} focus={step.focus} platform={platform} />
-      </section>
-
-      <section className="evidence-board">
-        <div className="panel-header">
-          <span>Paper metrics, re-framed for the walkthrough</span>
-          <h2>Baseline success can hide missed deadlines.</h2>
-        </div>
-        <div className="platform-grid">
-          {platforms.map((item) => (
-            <article className={item.id === step.platformId ? "platform-card active" : "platform-card"} key={item.id}>
-              <div>
-                <strong>{item.label}</strong>
-                <span>{item.scenario}</span>
-              </div>
-              <MetricRow
-                label="Tokens"
-                base={item.baseline.tokens}
-                brace={item.braceErecap.tokens}
-                max={Math.max(item.baseline.tokens, item.braceErecap.tokens)}
-                suffix=""
-              />
-              <MetricRow
-                label="SLO violation"
-                base={item.baseline.sloViolationPct}
-                brace={item.braceErecap.sloViolationPct}
-                max={100}
-                suffix="%"
-              />
-            </article>
-          ))}
-        </div>
-      </section>
+      {step.focus === "evidence" ? <EvidenceBoard /> : null}
     </main>
   );
 }
 
-function ContextPanel({
-  focus,
+function ModuleRail({ focus }: { focus: FocusArea }) {
+  const modules = [
+    { id: "context", label: "Context" },
+    { id: "gate", label: "Gate" },
+    { id: "budget", label: "Budget" },
+    { id: "compression", label: "E-RECAP" },
+    { id: "audit", label: "Audit" },
+  ];
+
+  return (
+    <div className="module-rail" aria-label="BRACE pipeline">
+      {modules.map((module) => (
+        <div className={focus === module.id || (focus === "pressure" && module.id === "context") ? "active" : ""} key={module.id}>
+          <span />
+          <strong>{module.label}</strong>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ActiveVisual({
+  activePhases,
+  keptTokens,
+  platform,
+  step,
+  tokens,
+}: {
+  activePhases: string[];
+  keptTokens: Set<string>;
+  platform: (typeof platforms)[number];
+  step: GuidedStep;
+  tokens: TokenSegment[];
+}) {
+  if (step.focus === "gate") {
+    return <GateVisual gate={step.gate} />;
+  }
+  if (step.focus === "budget") {
+    return <BudgetVisual platform={platform} />;
+  }
+  if (step.focus === "compression") {
+    return <CompressionVisual keptCount={keptTokens.size} totalCount={tokens.length} />;
+  }
+  if (step.focus === "audit") {
+    return <AuditVisual activePhases={activePhases} />;
+  }
+  if (step.focus === "evidence") {
+    return <EvidenceVisual />;
+  }
+  return <ContextVisual keptTokens={keptTokens} pressure={step.pressure} tokens={tokens} variant={step.focus} />;
+}
+
+function ContextVisual({
   keptTokens,
   pressure,
   tokens,
+  variant,
 }: {
-  focus: FocusArea;
   keptTokens: Set<string>;
   pressure: number;
   tokens: TokenSegment[];
+  variant: FocusArea;
 }) {
   return (
-    <article className={focus === "context" ? "panel focus" : "panel"}>
-      <div className="panel-header">
-        <span>Context buffer</span>
-        <h2>Prompt pressure</h2>
+    <div className="visual-panel">
+      <div className="visual-header">
+        <span>{variant === "pressure" ? "Coordination pressure" : "Context buffer"}</span>
+        <strong>{Math.round(pressure * 100)}%</strong>
       </div>
       <div className="pressure-meter">
         <div style={{ width: `${pressure * 100}%` }} />
       </div>
-      <div className="token-grid" aria-label="Token utility map">
+      <div className="token-grid" aria-label="Token map">
         {tokens.map((token) => (
-          <span
-            className={keptTokens.has(token.id) ? `token ${token.kind}` : `token ${token.kind} removed`}
-            key={token.id}
-            title={`${tokenKindLabels[token.kind]} utility ${token.utility.toFixed(2)}`}
-          />
+          <span className={tokenClass(token, keptTokens)} key={token.id} />
         ))}
       </div>
       <div className="legend">
-        <span className="task">Task</span>
-        <span className="history">History</span>
-        <span className="message">Messages</span>
-        <span className="observation">Observations</span>
+        <span className="head">Head anchor</span>
+        <span className="middle">Middle context</span>
         <span className="tail">Latest state</span>
+        <span className="pruned">Pruned later</span>
       </div>
-    </article>
+    </div>
   );
 }
 
-function ControllerPanel({
-  focus,
-  gate,
-  platformId,
-}: {
-  focus: FocusArea;
-  gate: GuidedStep["gate"];
-  platformId: PlatformId;
-}) {
+function GateVisual({ gate }: { gate: GuidedStep["gate"] }) {
   const gateText = {
     open: "Admit",
     cooldown: "Wait",
@@ -321,58 +358,66 @@ function ControllerPanel({
   }[gate];
 
   return (
-    <article className={focus === "gate" || focus === "budget" ? "panel focus" : "panel"}>
-      <div className="panel-header">
-        <span>BRACE controller</span>
-        <h2>Trigger to budget</h2>
-      </div>
+    <div className="visual-panel">
       <div className="flow">
-        <div className="flow-node hot">
+        <div className="flow-node trigger">
           <span>u_t</span>
           <strong>Trigger</strong>
         </div>
         <div className="flow-arrow" />
         <div className={`flow-node gate ${gate}`}>
           <span>{gateText}</span>
-          <strong>Gate</strong>
+          <strong>Stability gate</strong>
         </div>
         <div className="flow-arrow" />
         <div className="flow-node budget">
           <span>B_t</span>
-          <strong>Budget</strong>
+          <strong>Budgeted call</strong>
         </div>
       </div>
       <div className="rule-stack">
         <div className={gate === "cooldown" ? "active" : ""}>Cooldown spacing</div>
         <div className={gate === "commit" ? "active" : ""}>Commit stability</div>
         <div className={gate === "override" ? "active" : ""}>Failure-aware override</div>
-        <div className={focus === "budget" ? "active" : ""}>SLO-aware token budget</div>
       </div>
-      <p className="microcopy">
-        Active scenario: <strong>{platformId}</strong>. The page advances the controller state for
-        the viewer instead of exposing low-level knobs.
-      </p>
-    </article>
+    </div>
   );
 }
 
-function CompressionPanel({
-  focus,
-  keptCount,
-  totalCount,
-}: {
-  focus: FocusArea;
-  keptCount: number;
-  totalCount: number;
-}) {
+function BudgetVisual({ platform }: { platform: (typeof platforms)[number] }) {
+  return (
+    <div className="visual-panel budget-visual">
+      <div className="budget-line">
+        <div>
+          <span>SLO_t</span>
+          <strong>{platform.sloMs} ms</strong>
+        </div>
+        <i />
+        <div>
+          <span>C_t</span>
+          <strong>Context</strong>
+        </div>
+        <i />
+        <div>
+          <span>B_t</span>
+          <strong>Call budget</strong>
+        </div>
+      </div>
+      <div className="call-path">
+        <span>retrieve</span>
+        <span>plan</span>
+        <span>update</span>
+        <span>audit</span>
+      </div>
+    </div>
+  );
+}
+
+function CompressionVisual({ keptCount, totalCount }: { keptCount: number; totalCount: number }) {
   const layers = [totalCount, 44, 34, keptCount];
 
   return (
-    <article className={focus === "compression" ? "panel focus" : "panel"}>
-      <div className="panel-header">
-        <span>E-RECAP</span>
-        <h2>Progressive pruning</h2>
-      </div>
+    <div className="visual-panel">
       <div className="layer-stack">
         {layers.map((count, index) => (
           <div className="layer-row" key={`${count}-${index}`}>
@@ -389,46 +434,13 @@ function CompressionPanel({
         <span>High-utility middle</span>
         <span>Latest tail state</span>
       </div>
-    </article>
+    </div>
   );
 }
 
-function MetricsPanel({
-  activePhases,
-  focus,
-  platform,
-}: {
-  activePhases: string[];
-  focus: FocusArea;
-  platform: (typeof platforms)[number];
-}) {
-  const maxLatency = Math.max(platform.baseline.latencyP95Ms, platform.braceErecap.latencyP95Ms, platform.sloMs);
-
+function AuditVisual({ activePhases }: { activePhases: string[] }) {
   return (
-    <article className={focus === "audit" || focus === "evidence" ? "panel focus" : "panel"}>
-      <div className="panel-header">
-        <span>Runtime evidence</span>
-        <h2>{platform.label}</h2>
-      </div>
-      <div className="slo-card">
-        <span>SLO</span>
-        <strong>{platform.sloMs} ms</strong>
-        <p>{platform.scenario}</p>
-      </div>
-      <MetricRow
-        label="P95 latency"
-        base={platform.baseline.latencyP95Ms}
-        brace={platform.braceErecap.latencyP95Ms}
-        max={maxLatency}
-        suffix=" ms"
-      />
-      <MetricRow
-        label="Token load"
-        base={platform.baseline.tokens}
-        brace={platform.braceErecap.tokens}
-        max={Math.max(platform.baseline.tokens, platform.braceErecap.tokens)}
-        suffix=""
-      />
+    <div className="visual-panel">
       <div className="phase-strip">
         {Object.entries(phaseBudgets).map(([phase, ms]) => (
           <div className={activePhases.includes(phase) ? "active" : ""} key={phase}>
@@ -437,7 +449,60 @@ function MetricsPanel({
           </div>
         ))}
       </div>
-    </article>
+      <div className="audit-total">
+        <span>Observed call path</span>
+        <strong>{Object.values(phaseBudgets).reduce((sum, value) => sum + value, 0)} ms</strong>
+      </div>
+    </div>
+  );
+}
+
+function EvidenceVisual() {
+  return (
+    <div className="visual-panel evidence-visual">
+      {platforms.map((item) => (
+        <article key={item.id}>
+          <span>{item.label}</span>
+          <strong>{`${item.baseline.sloViolationPct}% to ${item.braceErecap.sloViolationPct}%`}</strong>
+          <p>SLO violation</p>
+        </article>
+      ))}
+    </div>
+  );
+}
+
+function EvidenceBoard() {
+  return (
+    <section className="evidence-board">
+      <div className="panel-header">
+        <span>Cross-platform evidence</span>
+        <h2>Baseline replanning can succeed while missing deadlines.</h2>
+      </div>
+      <div className="platform-grid">
+        {platforms.map((item) => (
+          <article className="platform-card" key={item.id}>
+            <div>
+              <strong>{item.label}</strong>
+              <span>{item.scenario}</span>
+            </div>
+            <MetricRow
+              label="Tokens"
+              base={item.baseline.tokens}
+              brace={item.braceErecap.tokens}
+              max={Math.max(item.baseline.tokens, item.braceErecap.tokens)}
+              suffix=""
+            />
+            <MetricRow
+              label="SLO violation"
+              base={item.baseline.sloViolationPct}
+              brace={item.braceErecap.sloViolationPct}
+              max={100}
+              suffix="%"
+            />
+          </article>
+        ))}
+      </div>
+    </section>
   );
 }
 

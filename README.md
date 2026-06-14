@@ -1,6 +1,6 @@
 # BRACE Animation
 
-Design and implementation workspace for a GitHub Pages friendly interactive animation explaining:
+Design and implementation workspace for an interactive BRACE method animation explaining:
 
 > When Replanning Becomes the Bottleneck: Budgeted Replanning for Embodied Agents
 
@@ -14,7 +14,7 @@ The current interface is intentionally step-based. A viewer can keep pressing **
 - `app/src/`: interactive explainer source.
 - `app/index.html`: Vite development/build entry.
 
-No paper figures are required for the page. The explainer uses code-generated visual elements so it can be deployed as a lightweight GitHub Pages site.
+No paper figures are required for the page. The explainer uses lightweight, code-generated visual elements.
 
 ## Local Development
 
@@ -29,11 +29,11 @@ npm run dev
 npm run build
 ```
 
-The app uses `base: "./"` in `vite.config.ts`, so the generated `dist/` is suitable for GitHub Pages subpath hosting.
+The app uses `base: "./"` in `vite.config.ts`, so the generated `dist/` works under a repository or project subpath.
 
-## GitHub Pages
+## Deployment
 
-GitHub Pages should use **GitHub Actions** as its source. The workflow in `.github/workflows/deploy.yml` builds the app and deploys `dist/` when changes are pushed to `main`.
+The workflow in `.github/workflows/deploy.yml` builds the app and deploys `dist/` when changes are pushed to `main`.
 
 ## Remote
 

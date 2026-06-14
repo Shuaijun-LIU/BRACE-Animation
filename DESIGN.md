@@ -2,7 +2,7 @@
 
 Date: 2026-06-12
 
-This document designs a GitHub Pages deployable interactive explainer for the BRACE paper:
+This document designs an interactive explainer for the BRACE paper:
 
 > When Replanning Becomes the Bottleneck: Budgeted Replanning for Embodied Agents
 
@@ -306,14 +306,14 @@ SVG for architecture and token flow
 Canvas only if token counts become visually dense
 CSS transitions / requestAnimationFrame for deterministic animation
 Static JSON data files for paper metrics
-GitHub Pages static deployment
+Static deployment
 ```
 
 Why React for this repo:
 
 - The local React Bits library provides reusable patterns if needed.
 - State-driven animation suits a fixed guided walkthrough with highlighted active subsystems.
-- Vite static export is straightforward for GitHub Pages.
+- Vite static export keeps deployment simple.
 
 Why not start with Three.js:
 
@@ -407,7 +407,7 @@ If visual rollouts are added later, prefer purpose-built animation frames or sma
 
 - Mobile layout.
 - Reduced motion.
-- GitHub Pages build.
+- Production build and static link checks.
 - Browser screenshots and local link checks.
 
 ## 12. Open Design Questions
