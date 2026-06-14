@@ -283,19 +283,26 @@ h2 {
 
 .next-primary {
   min-height: 44px;
-  border-color: #bc6428;
-  background: linear-gradient(180deg, #e2a14a, #c8742e);
+  border-color: #2c7fd2;
+  background:
+    linear-gradient(120deg, rgba(255, 255, 255, 0.22), transparent 38%),
+    linear-gradient(115deg, #245fca 0%, #20a7c9 46%, #6f8ff2 100%);
+  background-size: 180% 180%, 220% 220%;
   box-shadow:
-    0 11px 24px rgba(194, 116, 46, 0.28),
+    0 12px 26px rgba(34, 128, 202, 0.24),
+    0 0 0 1px rgba(255, 255, 255, 0.2) inset,
     inset 0 1px 0 rgba(255, 255, 255, 0.28);
   font-size: 15px;
-  animation: nextColorPulse 2.2s ease-in-out infinite;
+  animation: nextGradientFlow 4.2s ease-in-out infinite;
 }
 
 .next-primary:hover {
-  border-color: #a9561f;
-  background: linear-gradient(180deg, #edaf59, #bd6828);
-  animation-duration: 1.15s;
+  border-color: #1d74c3;
+  background:
+    linear-gradient(120deg, rgba(255, 255, 255, 0.28), transparent 38%),
+    linear-gradient(115deg, #1f68d6 0%, #18b4c8 44%, #7898f8 100%);
+  background-size: 170% 170%, 210% 210%;
+  animation-duration: 2.6s;
 }
 
 .next-cue {
@@ -303,7 +310,7 @@ h2 {
   align-items: center;
   justify-content: flex-end;
   gap: 8px;
-  color: #b76024;
+  color: #207abf;
   font-size: 12px;
   font-weight: 880;
   letter-spacing: 0.06em;
@@ -317,7 +324,7 @@ h2 {
   display: block;
   width: 34px;
   height: 2px;
-  background: #c8742e;
+  background: linear-gradient(90deg, #2f7fd2, #20a7c9);
 }
 
 .next-cue i::after {
@@ -326,8 +333,8 @@ h2 {
   top: 50%;
   width: 10px;
   height: 10px;
-  border-top: 2px solid #c8742e;
-  border-right: 2px solid #c8742e;
+  border-top: 2px solid #20a7c9;
+  border-right: 2px solid #20a7c9;
   content: "";
   transform: translateY(-50%) rotate(45deg);
 }
@@ -1993,29 +2000,21 @@ h2 {
   }
 }
 
-@keyframes nextColorPulse {
+@keyframes nextGradientFlow {
   0%,
   100% {
-    border-color: #bc6428;
-    background: linear-gradient(180deg, #e2a14a, #c8742e);
+    background-position: 0% 50%, 0% 50%;
     box-shadow:
-      0 11px 24px rgba(194, 116, 46, 0.26),
+      0 12px 26px rgba(34, 128, 202, 0.24),
+      0 0 0 1px rgba(255, 255, 255, 0.2) inset,
       inset 0 1px 0 rgba(255, 255, 255, 0.28);
   }
-  45% {
-    border-color: #df8b32;
-    background: linear-gradient(180deg, #f0b75e, #d98335);
+  45%,
+  55% {
+    background-position: 72% 42%, 100% 50%;
     box-shadow:
-      0 13px 28px rgba(216, 131, 53, 0.34),
-      0 0 0 4px rgba(216, 131, 53, 0.1),
-      inset 0 1px 0 rgba(255, 255, 255, 0.34);
-  }
-  70% {
-    border-color: #4f9d7b;
-    background: linear-gradient(180deg, #6dbb96, #4f9d7b);
-    box-shadow:
-      0 12px 26px rgba(79, 157, 123, 0.28),
-      0 0 0 3px rgba(79, 157, 123, 0.1),
+      0 14px 30px rgba(32, 167, 201, 0.3),
+      0 0 0 4px rgba(32, 167, 201, 0.09),
       inset 0 1px 0 rgba(255, 255, 255, 0.32);
   }
 }
