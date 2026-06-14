@@ -370,12 +370,16 @@ function App() {
   return (
     <main className="app-shell">
       <header className="topbar">
-        <a className="project-home-link" href="https://nebulis-lab.com/BRACE/" rel="noreferrer" target="_blank">
-          Project homepage
-        </a>
         <div className="title-block">
-          <p className="eyebrow">Interactive method explainer</p>
-          <h1>Budgeted Replanning for Embodied Agents</h1>
+          <div className="title-head">
+            <div>
+              <p className="eyebrow">Interactive method explainer</p>
+              <h1>Budgeted Replanning for Embodied Agents</h1>
+            </div>
+            <a className="project-home-link" href="https://nebulis-lab.com/BRACE/" rel="noreferrer" target="_blank">
+              Project site
+            </a>
+          </div>
           <div className="title-summary">
             <div>
               <span>When Replanning Becomes the Bottleneck</span>
