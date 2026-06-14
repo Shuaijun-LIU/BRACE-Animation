@@ -29,6 +29,9 @@ type GuidedStep = {
   title: string;
   narrative: string;
   takeaway: string;
+  controlQuestion: string;
+  controlAction: string;
+  moduleRole: string;
   focus: FocusArea;
   node: LoopNode;
   platformId: PlatformId;
@@ -64,6 +67,32 @@ const laneMeta: Record<LaneId, { label: string; short: string; description: stri
   latest: { label: "Latest state", short: "Tail", description: "protected recent context" },
 };
 
+const contributionFrame = [
+  {
+    label: "Reframe",
+    value: "Planning ability -> control problem",
+    detail: "Control when to call, how to call, and what cost the loop can afford.",
+  },
+  {
+    label: "Call path",
+    value: "Gate + budget + efficiency slot",
+    detail: "Instrument the replanning call instead of treating it as a black-box planner.",
+  },
+  {
+    label: "E-RECAP",
+    value: "One pluggable efficiency module",
+    detail: "Compression shows inserted modules can change latency and closed-loop behavior.",
+  },
+];
+
+const callPathSlots = [
+  { id: "gate", label: "Gate", detail: "admit, suppress, or override triggers" },
+  { id: "budget", label: "Budget", detail: "assign token and latency budget" },
+  { id: "compression", label: "Compress", detail: "E-RECAP prunes context before the planner" },
+  { id: "retrieval", label: "Retrieve / cache", detail: "slot for reusable memory or cached context" },
+  { id: "audit", label: "Audit", detail: "attribute latency and update the loop" },
+];
+
 const stepStates: GuidedStep[] = [
   {
     id: "context",
@@ -72,6 +101,9 @@ const stepStates: GuidedStep[] = [
     narrative:
       "Task anchors, plan history, messages, observations, and the newest state all enter the same replanning buffer before the planner can act.",
     takeaway: "The page should make C_t feel like a growing runtime object, not a static prompt.",
+    controlQuestion: "What state has accumulated enough to justify a replanning call?",
+    controlAction: "Observe C_t as a system variable before spending a planner call.",
+    moduleRole: "Compression and retrieval are idle until the controller decides the context should enter the call path.",
     focus: "context",
     node: "observe",
     platformId: "habitat",
@@ -94,6 +126,9 @@ const stepStates: GuidedStep[] = [
     narrative:
       "Hazard, failure, and periodic triggers compete for the same call path. The loop shows why repeated replanning can overload deadlines even when plans eventually work.",
     takeaway: "Trigger frequency is part of the bottleneck; a fast planner is not enough if the loop churns.",
+    controlQuestion: "When should a fresh observation become an expensive replanning request?",
+    controlAction: "Separate trigger detection from planner invocation so the loop can regulate call frequency.",
+    moduleRole: "Efficiency modules matter only after trigger pressure is converted into an admitted call.",
     focus: "pressure",
     node: "trigger",
     platformId: "airsim",
@@ -116,6 +151,9 @@ const stepStates: GuidedStep[] = [
     narrative:
       "Cooldown and commit counters decide whether a trigger should become a planner call. Failure-aware override remains available when recovery is needed.",
     takeaway: "The controller is the anti-churn mechanism: it controls when computation is worth spending.",
+    controlQuestion: "Should this trigger actually replace the current plan?",
+    controlAction: "Use cooldown, commit stability, and failure override to suppress unstable call churn.",
+    moduleRole: "The call path is protected before any compression, retrieval, or planner work is paid for.",
     focus: "gate",
     node: "gate",
     platformId: "robofactory",
@@ -138,6 +176,9 @@ const stepStates: GuidedStep[] = [
     narrative:
       "Budget selection connects C_t, SLO_t, and the enabled modules before retrieval, compression, planning, update, and audit run.",
     takeaway: "B_t is a controller output, not a manual keep-ratio knob.",
+    controlQuestion: "How much context and latency can this admitted call spend?",
+    controlAction: "Choose a budget for the whole replanning path rather than tuning a viewer-facing slider.",
+    moduleRole: "Compression, retrieval, and caching can be swapped into the budgeted call path as efficiency modules.",
     focus: "budget",
     node: "budget",
     platformId: "habitat",
@@ -160,6 +201,9 @@ const stepStates: GuidedStep[] = [
     narrative:
       "The utility predictor scores middle tokens from hidden states. Head and tail windows stay pinned while low-utility middle tokens are removed across layers.",
     takeaway: "This step must show actual token processing: score, select, prune, and pass kept tokens forward.",
+    controlQuestion: "How should the admitted context be made planner-ready under the budget?",
+    controlAction: "Run E-RECAP as a call-path module that protects anchors and prunes low-utility middle context.",
+    moduleRole: "The contribution is the modular efficiency slot; E-RECAP is the concrete compression instance.",
     focus: "compression",
     node: "compress",
     platformId: "airsim",
@@ -182,6 +226,9 @@ const stepStates: GuidedStep[] = [
     narrative:
       "The audit path records compression, retrieval, planner, and update time separately before checking l_t against SLO_t.",
     takeaway: "BRACE makes overhead attributable instead of hiding every cost inside one latency number.",
+    controlQuestion: "Did the full replanning call stay within the real-time contract?",
+    controlAction: "Audit each phase so future gating and budget decisions are informed by measured cost.",
+    moduleRole: "Any inserted compression, retrieval, or cache module must be accounted for in l_t.",
     focus: "audit",
     node: "audit",
     platformId: "habitat",
@@ -204,6 +251,9 @@ const stepStates: GuidedStep[] = [
     narrative:
       "The mechanism remains visible while evidence expands: token reduction maps to E-RECAP, deadline reduction maps to budgeting/accounting, and churn reduction maps to the gate.",
     takeaway: "Metrics should read as evidence for the loop, not as unrelated cards below the animation.",
+    controlQuestion: "Does call-path control change closed-loop behavior across embodied domains?",
+    controlAction: "Connect tokens, latency violations, and stability back to the same controlled replanning loop.",
+    moduleRole: "E-RECAP is evidence that the framework can compose efficiency modules to alter real-time replanning.",
     focus: "evidence",
     node: "audit",
     platformId: "airsim",
@@ -352,6 +402,33 @@ function App() {
           <span className="section-label">{step.label}</span>
           <h2>{step.title}</h2>
           <p>{step.narrative}</p>
+          <div className="thesis-strip">
+            <span>Central contribution</span>
+            <strong>Replanning becomes a control problem: when, how, and at what cost.</strong>
+          </div>
+          <div className="contribution-grid">
+            {contributionFrame.map((item) => (
+              <div key={item.label}>
+                <span>{item.label}</span>
+                <strong>{item.value}</strong>
+                <p>{item.detail}</p>
+              </div>
+            ))}
+          </div>
+          <div className="control-question">
+            <span>Question in this step</span>
+            <p>{step.controlQuestion}</p>
+          </div>
+          <div className="decision-stack">
+            <div>
+              <span>Control move</span>
+              <strong>{step.controlAction}</strong>
+            </div>
+            <div>
+              <span>Efficiency module role</span>
+              <strong>{step.moduleRole}</strong>
+            </div>
+          </div>
           <div className="takeaway">
             <strong>Takeaway</strong>
             <p>{step.takeaway}</p>
@@ -369,6 +446,7 @@ function App() {
           <span className="section-label">Current scene</span>
           <h2>{platform.label}</h2>
           <p>{platform.scenario}</p>
+          <SceneState platform={platform} step={step} />
           <MetricRow
             label="P95 latency"
             base={platform.baseline.latencyP95Ms}
@@ -383,16 +461,85 @@ function App() {
             max={Math.max(platform.baseline.tokens, platform.braceErecap.tokens)}
             suffix=""
           />
+          <MetricRow
+            label="Task success"
+            base={platform.baseline.successPct}
+            brace={platform.braceErecap.successPct}
+            max={100}
+            suffix="%"
+          />
+          <CallPathSlots focus={step.focus} />
           <div className="slo-note">
             <span>SLO</span>
             <strong>{platform.sloMs} ms</strong>
           </div>
           <p className="evidence-note">{step.evidenceNote}</p>
+          <div className="module-note">
+            <span>Modular claim</span>
+            <p>
+              E-RECAP is not the only point: it shows that compression, retrieval, or caching modules can be inserted
+              into the replanning call path to change real-time closed-loop behavior.
+            </p>
+          </div>
         </aside>
       </section>
 
       {step.focus === "evidence" ? <EvidenceBoard /> : null}
     </main>
+  );
+}
+
+function SceneState({ platform, step }: { platform: (typeof platforms)[number]; step: GuidedStep }) {
+  const tokenDrop = Math.round((1 - platform.braceErecap.tokens / platform.baseline.tokens) * 100);
+  const latencyDrop = Math.round((1 - platform.braceErecap.latencyP95Ms / platform.baseline.latencyP95Ms) * 100);
+
+  return (
+    <div className="scene-state">
+      <div>
+        <span>Agents</span>
+        <strong>{`K=${platform.agents}`}</strong>
+      </div>
+      <div>
+        <span>Raw C_t</span>
+        <strong>{`${step.rawTokens.toLocaleString()} tok`}</strong>
+      </div>
+      <div>
+        <span>Trigger</span>
+        <strong>{step.triggerType}</strong>
+      </div>
+      <div>
+        <span>Gate</span>
+        <strong>{gateLabel(step.gate)}</strong>
+      </div>
+      <div>
+        <span>Token drop</span>
+        <strong>{`${tokenDrop}%`}</strong>
+      </div>
+      <div>
+        <span>P95 drop</span>
+        <strong>{`${latencyDrop}%`}</strong>
+      </div>
+    </div>
+  );
+}
+
+function CallPathSlots({ focus }: { focus: FocusArea }) {
+  return (
+    <div className="callpath-slots">
+      <span className="mini-heading">Pluggable call path</span>
+      {callPathSlots.map((slot) => {
+        const active =
+          slot.id === focus ||
+          (slot.id === "compression" && focus === "budget") ||
+          (slot.id === "audit" && focus === "evidence");
+        return (
+          <div className={active ? "active" : ""} key={slot.id}>
+            <strong>{slot.label}</strong>
+            <span>{slot.detail}</span>
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
