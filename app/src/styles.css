@@ -45,15 +45,11 @@ button {
 }
 
 .topbar {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 330px;
-  gap: 22px;
-  align-items: end;
+  display: block;
   margin-bottom: 18px;
 }
 
 .eyebrow,
-.paper-card span,
 .section-label,
 .panel-header span,
 .progress-cluster span,
@@ -74,7 +70,7 @@ p {
 }
 
 h1 {
-  max-width: 900px;
+  max-width: 980px;
   margin-bottom: 12px;
   font-size: 42px;
   line-height: 1.08;
@@ -90,14 +86,13 @@ h2 {
 }
 
 .lede {
-  max-width: 850px;
+  max-width: 980px;
   margin-bottom: 0;
   color: var(--muted);
   font-size: 16px;
   line-height: 1.65;
 }
 
-.paper-card,
 .guide-bar,
 .story-card,
 .stage-card,
@@ -108,22 +103,33 @@ h2 {
   background: var(--panel);
 }
 
-.paper-card {
-  padding: 17px;
+.title-block {
+  max-width: 1120px;
 }
 
-.paper-card strong {
-  display: block;
-  margin: 8px 0;
-  font-size: 18px;
-  line-height: 1.25;
+.title-paper {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: center;
+  max-width: 980px;
+  margin: 0 0 10px;
+  padding: 10px 12px;
+  border: 1px solid #d5e3f7;
+  border-radius: 8px;
+  background: #f5f8ff;
 }
 
-.paper-card p {
-  margin-bottom: 0;
-  color: var(--muted);
+.title-paper span {
+  color: #284d8e;
   font-size: 14px;
-  line-height: 1.5;
+  font-weight: 840;
+}
+
+.title-paper strong {
+  color: #52647e;
+  font-size: 13px;
+  font-weight: 760;
 }
 
 .guide-bar {
@@ -180,8 +186,9 @@ h2 {
 
 .guide-actions {
   display: grid;
-  grid-template-columns: 82px 112px;
+  grid-template-columns: 82px 224px;
   gap: 8px;
+  align-items: center;
 }
 
 .guide-actions button {
@@ -197,9 +204,62 @@ h2 {
 }
 
 .primary {
-  border: 1px solid var(--blue);
-  background: var(--blue);
+  border: 1px solid #2f67cf;
+  background: linear-gradient(180deg, #5c8bea, #356fda);
   color: #fff;
+}
+
+.next-action {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 112px;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+}
+
+.next-primary {
+  box-shadow:
+    0 9px 20px rgba(53, 111, 218, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.28);
+}
+
+.next-primary:hover {
+  border-color: #255dbf;
+  background: linear-gradient(180deg, #6a98ef, #2f67cf);
+}
+
+.next-cue {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  color: #315fae;
+  font-size: 10px;
+  font-weight: 820;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  animation: cueNudge 1.7s ease-in-out infinite;
+}
+
+.next-cue i {
+  position: relative;
+  display: block;
+  width: 24px;
+  height: 1px;
+  background: #7da0e3;
+}
+
+.next-cue i::after {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  border-top: 1px solid #7da0e3;
+  border-right: 1px solid #7da0e3;
+  content: "";
+  transform: translateY(-50%) rotate(45deg);
 }
 
 .secondary {
@@ -239,9 +299,9 @@ h2 {
 
 .thesis-strip {
   padding: 10px;
-  border: 1px solid #cfe0f8;
+  border: 1px solid #bed2f2;
   border-radius: 8px;
-  background: linear-gradient(180deg, #f5f8ff, #ffffff);
+  background: linear-gradient(180deg, #edf4ff, #ffffff);
 }
 
 .thesis-strip span,
@@ -278,6 +338,11 @@ h2 {
   background: #fbfcff;
 }
 
+.contribution-grid div:first-child {
+  border-color: #cfe0f8;
+  background: #f4f8ff;
+}
+
 .contribution-grid strong {
   display: block;
   margin-top: 3px;
@@ -295,9 +360,9 @@ h2 {
 
 .control-question {
   padding: 9px;
-  border: 1px solid #ead8b5;
+  border: 1px solid #e0c586;
   border-radius: 8px;
-  background: #fffaf0;
+  background: linear-gradient(180deg, #fff4d7, #fffdf8);
 }
 
 .control-question span {
@@ -323,6 +388,18 @@ h2 {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: #fff;
+}
+
+.decision-stack div:first-child {
+  border-color: #cfe0f8;
+  background: #f5f8ff;
+}
+
+.story-card.focus-compression .decision-stack div:last-child,
+.story-card.focus-budget .decision-stack div:last-child,
+.story-card.focus-evidence .decision-stack div:last-child {
+  border-color: #cfe8da;
+  background: #f3fbf7;
 }
 
 .decision-stack strong {
@@ -536,9 +613,9 @@ h2 {
 }
 
 .work-module.active {
-  border-color: #b7c9ee;
+  border-color: #9eb9ea;
   background:
-    linear-gradient(180deg, rgba(234, 241, 255, 0.7), rgba(255, 255, 255, 0.98)),
+    linear-gradient(180deg, rgba(225, 236, 255, 0.92), rgba(255, 255, 255, 0.98)),
     #fff;
   transform: translateY(-1px);
 }
@@ -844,6 +921,8 @@ h2 {
   height: 100%;
   border-radius: inherit;
   background: #9fbae8;
+  transform-origin: left center;
+  animation: barReveal 620ms ease both;
   transition: width 240ms ease;
 }
 
@@ -910,6 +989,8 @@ h2 {
   border: 1px solid #b8ccef;
   border-radius: inherit;
   background: linear-gradient(90deg, #d9e5ff, #dff2ea);
+  transform-origin: left center;
+  animation: barReveal 720ms ease both;
   transition: width 300ms ease;
 }
 
@@ -1191,8 +1272,8 @@ h2 {
 }
 
 .callpath-slots div.active {
-  border-color: #b7c9ee;
-  background: var(--blue-soft);
+  border-color: #9eb9ea;
+  background: #e3edff;
 }
 
 .callpath-slots strong {
@@ -1228,9 +1309,9 @@ h2 {
   gap: 12px;
   margin-top: 4px;
   padding: 9px;
-  border: 1px solid #e7d5aa;
+  border: 1px solid #dfc37c;
   border-radius: 8px;
-  background: #fffaf0;
+  background: #fff4d7;
 }
 
 .slo-note span {
@@ -1248,9 +1329,9 @@ h2 {
 .evidence-note {
   margin-top: 4px;
   padding: 9px;
-  border: 1px solid #d7eadf;
+  border: 1px solid #c4e2d1;
   border-radius: 8px;
-  background: #f6fbf8;
+  background: #f0faf5;
   color: #4d665a;
   font-size: 11px;
   line-height: 1.36;
@@ -1296,6 +1377,8 @@ h2 {
   display: block;
   height: 100%;
   border-radius: inherit;
+  transform-origin: left center;
+  animation: barReveal 760ms ease both;
 }
 
 .bar-pair div:first-child span {
@@ -1406,6 +1489,15 @@ h2 {
   }
 }
 
+@keyframes barReveal {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
 @keyframes chipSettle {
   from {
     opacity: 0;
@@ -1468,6 +1560,18 @@ h2 {
   }
 }
 
+@keyframes cueNudge {
+  0%,
+  100% {
+    opacity: 0.72;
+    transform: translateX(-2px);
+  }
+  50% {
+    opacity: 1;
+    transform: translateX(2px);
+  }
+}
+
 @media (max-width: 1220px) {
   .topbar,
   .story-layout {
@@ -1507,6 +1611,14 @@ h2 {
 
   .guide-actions {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .next-cue {
+    display: none;
+  }
+
+  .next-action {
+    grid-template-columns: 1fr;
   }
 
   .loop-rail {

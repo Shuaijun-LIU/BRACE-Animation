@@ -41,6 +41,7 @@ type GuidedStep = {
   counters: Counters;
   pressure: number;
   rawTokens: number;
+  budgetTokens: number | null;
   keepTarget: number;
   layerCounts: number[];
   phaseMs: Record<PhaseName, number>;
@@ -113,10 +114,11 @@ const stepStates: GuidedStep[] = [
     counters: { delta: 3, omega: 2, sinceReplan: 6, sincePlanChange: 5, failureWindow: 0 },
     pressure: 0.42,
     rawTokens: 235,
+    budgetTokens: null,
     keepTarget: 52,
     layerCounts: [52, 52, 52, 52],
-    phaseMs: { compression: 0, retrieval: 0, planner: 148, update: 24 },
-    auditLine: "sense appended observation; planner input is still uncompressed",
+    phaseMs: { compression: 0, retrieval: 0, planner: 2677, update: 0 },
+    auditLine: "raw No-BRACE call path exceeds the Habitat SLO tail even with saturated success",
     evidenceNote: "Meta Habitat anchor: success is saturated, but tail latency is the hidden issue.",
   },
   {
@@ -138,10 +140,11 @@ const stepStates: GuidedStep[] = [
     counters: { delta: 3, omega: 2, sinceReplan: 4, sincePlanChange: 4, failureWindow: 1 },
     pressure: 0.86,
     rawTokens: 2934,
+    budgetTokens: null,
     keepTarget: 52,
     layerCounts: [52, 52, 52, 52],
-    phaseMs: { compression: 0, retrieval: 42, planner: 236, update: 31 },
-    auditLine: "hazard trigger fired; baseline would call planner again",
+    phaseMs: { compression: 0, retrieval: 0, planner: 8520, update: 0 },
+    auditLine: "hazard trigger fired; unbudgeted AirSim tail latency reaches the deadline-miss regime",
     evidenceNote: "AirSim K=8 baseline reaches 100% SLO violation despite 100% success.",
   },
   {
@@ -163,10 +166,11 @@ const stepStates: GuidedStep[] = [
     counters: { delta: 3, omega: 3, sinceReplan: 5, sincePlanChange: 1, failureWindow: 1 },
     pressure: 0.72,
     rawTokens: 1566,
+    budgetTokens: null,
     keepTarget: 52,
     layerCounts: [52, 52, 52, 52],
-    phaseMs: { compression: 0, retrieval: 28, planner: 210, update: 33 },
-    auditLine: "commit window blocks immediate plan replacement",
+    phaseMs: { compression: 0, retrieval: 0, planner: 0, update: 0 },
+    auditLine: "commit window holds the current plan; no new planner call is spent",
     evidenceNote: "Proxy sweep: controller structure collapses calls/deadlocks compared with replanning every step.",
   },
   {
@@ -183,15 +187,16 @@ const stepStates: GuidedStep[] = [
     node: "budget",
     platformId: "habitat",
     triggerType: "periodic",
-    gate: "cooldown",
-    checks: { trigger: true, cooldown: false, commit: true, override: false },
-    counters: { delta: 3, omega: 2, sinceReplan: 1, sincePlanChange: 5, failureWindow: 0 },
+    gate: "admit",
+    checks: { trigger: true, cooldown: true, commit: true, override: false },
+    counters: { delta: 3, omega: 2, sinceReplan: 3, sincePlanChange: 5, failureWindow: 0 },
     pressure: 0.62,
     rawTokens: 235,
+    budgetTokens: 20,
     keepTarget: 44,
     layerCounts: [52, 47, 44, 44],
-    phaseMs: { compression: 12, retrieval: 38, planner: 184, update: 28 },
-    auditLine: "budget selected; current context must fit B_t before planning",
+    phaseMs: { compression: 35.63, retrieval: 0, planner: 2414.05, update: 0.24 },
+    auditLine: "budget selected; Habitat call-path mean stays near the 2500 ms SLO after pruning",
     evidenceNote: "Matched-budget baselines show token count alone does not explain tail behavior.",
   },
   {
@@ -213,10 +218,11 @@ const stepStates: GuidedStep[] = [
     counters: { delta: 3, omega: 2, sinceReplan: 5, sincePlanChange: 5, failureWindow: 1 },
     pressure: 0.7,
     rawTokens: 2934,
+    budgetTokens: 1114,
     keepTarget: 27,
     layerCounts: [52, 44, 34, 27],
-    phaseMs: { compression: 36, retrieval: 42, planner: 148, update: 26 },
-    auditLine: "head/tail pinned; top-utility middle tokens form planner input",
+    phaseMs: { compression: 36, retrieval: 42, planner: 1536, update: 26 },
+    auditLine: "head/tail pinned; top-utility middle tokens form the AirSim budgeted planner input",
     evidenceNote: "E-RECAP removes 71-76% of tokens in multi-agent Habitat context-growth tests.",
   },
   {
@@ -238,10 +244,11 @@ const stepStates: GuidedStep[] = [
     counters: { delta: 3, omega: 2, sinceReplan: 1, sincePlanChange: 1, failureWindow: 3 },
     pressure: 0.58,
     rawTokens: 235,
+    budgetTokens: 20,
     keepTarget: 22,
     layerCounts: [52, 38, 28, 22],
-    phaseMs: { compression: 36, retrieval: 42, planner: 148, update: 26 },
-    auditLine: "failure override admits recovery; audit emits l_t and phase breakdown",
+    phaseMs: { compression: 35.63, retrieval: 0, planner: 2414.05, update: 0.24 },
+    auditLine: "failure override admits recovery; appendix phase audit reports 2486.31 ms P95",
     evidenceNote: "Habitat phase table: pruning overhead is small relative to planner time after compression.",
   },
   {
@@ -263,9 +270,10 @@ const stepStates: GuidedStep[] = [
     counters: { delta: 3, omega: 2, sinceReplan: 5, sincePlanChange: 4, failureWindow: 0 },
     pressure: 0.64,
     rawTokens: 2934,
+    budgetTokens: 1114,
     keepTarget: 26,
     layerCounts: [52, 42, 32, 26],
-    phaseMs: { compression: 36, retrieval: 42, planner: 148, update: 26 },
+    phaseMs: { compression: 36, retrieval: 42, planner: 1536, update: 26 },
     auditLine: "cross-platform summary links token, SLO, and stability metrics back to loop modules",
     evidenceNote: "Across main platforms, baseline success can saturate while deadlines fail.",
   },
@@ -336,6 +344,17 @@ function gateLabel(gate: GateState) {
   }[gate];
 }
 
+function budgetLabel(step: GuidedStep) {
+  if (step.gate === "commit" || step.gate === "cooldown") {
+    return "held";
+  }
+  return step.budgetTokens === null ? "none" : `${step.budgetTokens.toLocaleString()} tok`;
+}
+
+function formatMs(value: number) {
+  return Number.isInteger(value) ? `${value}` : value.toFixed(2);
+}
+
 function App() {
   const [stepIndex, setStepIndex] = useState(0);
   const step = stepStates[stepIndex];
@@ -351,18 +370,17 @@ function App() {
   return (
     <main className="app-shell">
       <header className="topbar">
-        <div>
+        <div className="title-block">
           <p className="eyebrow">Interactive method explainer</p>
           <h1>Budgeted Replanning for Embodied Agents</h1>
+          <div className="title-paper">
+            <span>When Replanning Becomes the Bottleneck</span>
+            <strong>Budgeted controller, context compression, and SLO-aware audit signals.</strong>
+          </div>
           <p className="lede">
             A loop-based walkthrough of how a replanning controller gates triggers, budgets context,
             compresses tokens with E-RECAP, and audits latency against real-time deadlines.
           </p>
-        </div>
-        <div className="paper-card">
-          <span>Paper focus</span>
-          <strong>When Replanning Becomes the Bottleneck</strong>
-          <p>Budgeted controller, context compression, and SLO-aware audit signals.</p>
         </div>
       </header>
 
@@ -391,14 +409,20 @@ function App() {
           >
             Back
           </button>
-          <button className="primary" onClick={advance} type="button">
-            {isFinalStep ? "Restart" : "Next"}
-          </button>
+          <div className="next-action">
+            <span className="next-cue" aria-hidden="true">
+              {isFinalStep ? "replay" : "keep going"}
+              <i />
+            </span>
+            <button className="primary next-primary" onClick={advance} type="button">
+              {isFinalStep ? "Restart" : "Next"}
+            </button>
+          </div>
         </div>
       </section>
 
       <section className="story-layout" aria-label="Budgeted replanning walkthrough">
-        <article className="story-card">
+        <article className={`story-card focus-${step.focus}`} key={`story-${step.id}`}>
           <span className="section-label">{step.label}</span>
           <h2>{step.title}</h2>
           <p>{step.narrative}</p>
@@ -436,13 +460,13 @@ function App() {
           <div className="step-facts">
             <span>{`trigger: ${step.triggerType}`}</span>
             <span>{`gate: ${gateLabel(step.gate)}`}</span>
-            <span>{`B_t: ${step.keepTarget}`}</span>
+            <span>{`B_t: ${budgetLabel(step)}`}</span>
           </div>
         </article>
 
-        <LoopWorkbench keptTokens={keptTokens} platform={platform} step={step} tokens={tokens} />
+        <LoopWorkbench key={`workbench-${step.id}`} keptTokens={keptTokens} platform={platform} step={step} tokens={tokens} />
 
-        <aside className="context-card">
+        <aside className={`context-card focus-${step.focus}`} key={`scene-${step.id}`}>
           <span className="section-label">Current scene</span>
           <h2>{platform.label}</h2>
           <p>{platform.scenario}</p>
@@ -453,6 +477,13 @@ function App() {
             brace={platform.braceErecap.latencyP95Ms}
             max={Math.max(platform.baseline.latencyP95Ms, platform.braceErecap.latencyP95Ms, platform.sloMs)}
             suffix=" ms"
+          />
+          <MetricRow
+            label="SLO violation"
+            base={platform.baseline.sloViolationPct}
+            brace={platform.braceErecap.sloViolationPct}
+            max={100}
+            suffix="%"
           />
           <MetricRow
             label="Token load"
@@ -491,7 +522,7 @@ function App() {
 
 function SceneState({ platform, step }: { platform: (typeof platforms)[number]; step: GuidedStep }) {
   const tokenDrop = Math.round((1 - platform.braceErecap.tokens / platform.baseline.tokens) * 100);
-  const latencyDrop = Math.round((1 - platform.braceErecap.latencyP95Ms / platform.baseline.latencyP95Ms) * 100);
+  const sloDrop = Math.round((1 - platform.braceErecap.sloViolationPct / platform.baseline.sloViolationPct) * 100);
 
   return (
     <div className="scene-state">
@@ -516,8 +547,8 @@ function SceneState({ platform, step }: { platform: (typeof platforms)[number]; 
         <strong>{`${tokenDrop}%`}</strong>
       </div>
       <div>
-        <span>P95 drop</span>
-        <strong>{`${latencyDrop}%`}</strong>
+        <span>SLO drop</span>
+        <strong>{`${sloDrop}%`}</strong>
       </div>
     </div>
   );
@@ -570,11 +601,11 @@ function LoopWorkbench({
         </div>
         <div>
           <span>Planner input</span>
-          <strong>{keptCount} kept</strong>
+          <strong>{budgetLabel(step)}</strong>
         </div>
         <div>
           <span>Call latency</span>
-          <strong>{totalPhaseMs(step)} ms</strong>
+          <strong>{`${formatMs(totalPhaseMs(step))} ms`}</strong>
         </div>
       </div>
 
@@ -700,7 +731,7 @@ function ControllerCard({ focus, step }: { focus: FocusArea; step: GuidedStep })
       <div className="controller-flow">
         <div className={`controller-node trigger ${step.triggerType}`}>{step.triggerType}</div>
         <div className={`controller-node gate ${step.gate}`}>{gateLabel(step.gate)}</div>
-        <div className="controller-node budget">B_t {step.keepTarget}</div>
+        <div className="controller-node budget">B_t {budgetLabel(step)}</div>
       </div>
       <div className="gate-checks">
         {checks.map((check) => (
@@ -816,7 +847,7 @@ function PlannerAuditCard({
     <article className={focus === "audit" || focus === "evidence" ? "work-module active" : "work-module"}>
       <div className="module-title">
         <span>Planner + audit</span>
-        <strong>{`${totalMs} ms`}</strong>
+        <strong>{step.gate === "commit" || step.gate === "cooldown" ? "no call" : `${formatMs(totalMs)} ms`}</strong>
       </div>
       <div className="planner-input-strip">
         {kept.map((token, index) => (
@@ -830,14 +861,14 @@ function PlannerAuditCard({
             <div>
               <i style={{ width: metricWidth(step.phaseMs[phase], Math.max(...Object.values(step.phaseMs), 1)), "--delay": `${index * 90}ms` } as CSSProperties} />
             </div>
-            <strong>{step.phaseMs[phase]} ms</strong>
+            <strong>{formatMs(step.phaseMs[phase])} ms</strong>
           </div>
         ))}
       </div>
       <div className={totalMs <= platform.sloMs ? "slo-gauge pass" : "slo-gauge fail"}>
         <div>
           <span>l_t</span>
-          <strong>{totalMs} ms</strong>
+          <strong>{step.gate === "commit" || step.gate === "cooldown" ? "held" : `${formatMs(totalMs)} ms`}</strong>
         </div>
         <div>
           <span>SLO_t</span>
